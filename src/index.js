@@ -11,6 +11,7 @@ import { config } from './config.js';
 
 // Routes — import with error handling
 let syncRouter, sessionsRouter, speakersRouter, surveysRouter, bookmarksRouter, pushRouter;
+let entitiesRouter, guidesRouter, roomsRouter, trabajosRouter;
 let loginWithGoogle;
 
 try {
@@ -19,6 +20,15 @@ try {
   speakersRouter = (await import('./routes/speakers.js')).default;
 } catch (err) {
   console.error('[API] Failed to load core routes:', err.message);
+}
+
+try {
+  entitiesRouter = (await import('./routes/entities.js')).default;
+  guidesRouter   = (await import('./routes/guides.js')).default;
+  roomsRouter    = (await import('./routes/rooms.js')).default;
+  trabajosRouter = (await import('./routes/trabajos.js')).default;
+} catch (err) {
+  console.error('[API] Failed to load CMS routes:', err.message);
 }
 
 try {
@@ -80,12 +90,16 @@ app.post('/api/auth/google', async (req, res) => {
 });
 
 // ─── API Routes ───────────────────────────────
-if (syncRouter)     app.use('/api/sync',      syncRouter);
-if (sessionsRouter) app.use('/api/sessions',  sessionsRouter);
-if (speakersRouter) app.use('/api/speakers',  speakersRouter);
-if (surveysRouter)  app.use('/api/surveys',   surveysRouter);
+if (syncRouter)      app.use('/api/sync',      syncRouter);
+if (sessionsRouter)  app.use('/api/sessions',  sessionsRouter);
+if (speakersRouter)  app.use('/api/speakers',  speakersRouter);
+if (surveysRouter)   app.use('/api/surveys',   surveysRouter);
 if (bookmarksRouter) app.use('/api/me/bookmarks', bookmarksRouter);
-if (pushRouter)     app.use('/api/push',      pushRouter);
+if (pushRouter)      app.use('/api/push',      pushRouter);
+if (entitiesRouter)  app.use('/api/entities',  entitiesRouter);
+if (guidesRouter)    app.use('/api/guides',    guidesRouter);
+if (roomsRouter)     app.use('/api/rooms',     roomsRouter);
+if (trabajosRouter)  app.use('/api/trabajos',  trabajosRouter);
 
 // ─── Error handler ────────────────────────────
 app.use((err, _req, res, _next) => {

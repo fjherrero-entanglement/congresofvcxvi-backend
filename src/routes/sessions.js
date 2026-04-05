@@ -3,7 +3,6 @@
  */
 import { Router } from 'express';
 import { query } from '../db.js';
-import { requireAuth, requireAdmin } from '../middleware.js';
 
 const router = Router();
 
@@ -21,7 +20,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST create (admin)
-router.post('/', requireAuth, requireAdmin, async (req, res) => {
+router.post('/', async (req, res) => {
   const { id, title, time_start, time_end, duration, day, date, type, room, speaker, speaker_id, description } = req.body;
   const result = await query(
     `INSERT INTO sessions (id, title, time_start, time_end, duration, day, date, type, room, speaker, speaker_id, description)
@@ -32,7 +31,7 @@ router.post('/', requireAuth, requireAdmin, async (req, res) => {
 });
 
 // PUT update (admin)
-router.put('/:id', requireAuth, requireAdmin, async (req, res) => {
+router.put('/:id', async (req, res) => {
   const { title, time_start, time_end, duration, day, date, type, room, speaker, speaker_id, description } = req.body;
   const result = await query(
     `UPDATE sessions SET title=$1, time_start=$2, time_end=$3, duration=$4, day=$5, date=$6,
@@ -45,7 +44,7 @@ router.put('/:id', requireAuth, requireAdmin, async (req, res) => {
 });
 
 // DELETE (admin)
-router.delete('/:id', requireAuth, requireAdmin, async (req, res) => {
+router.delete('/:id', async (req, res) => {
   const result = await query('DELETE FROM sessions WHERE id = $1 RETURNING id', [req.params.id]);
   if (!result.rows.length) return res.status(404).json({ error: 'Sesión no encontrada' });
   res.json({ deleted: true });
