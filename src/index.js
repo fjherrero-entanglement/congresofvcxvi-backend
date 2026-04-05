@@ -2,19 +2,42 @@
  * ═══════════════════════════════════════════════
  * VACUNAR API — Express Entry Point
  * Cloud Run serves on PORT (default 8080)
+ * Robust: starts even if optional modules fail
  * ═══════════════════════════════════════════════
  */
 import express from 'express';
 import { config } from './config.js';
-import { loginWithGoogle } from './auth.js';
 
-// Routes
-import syncRouter     from './routes/sync.js';
-import sessionsRouter from './routes/sessions.js';
-import speakersRouter from './routes/speakers.js';
-import surveysRouter  from './routes/surveys.js';
-import bookmarksRouter from './routes/bookmarks.js';
-import pushRouter     from './routes/push.js';
+// Routes — import with error handling
+let syncRouter, sessionsRouter, speakersRouter, surveysRouter, bookmarksRouter, pushRouter;
+let loginWithGoogle;
+
+try {
+  syncRouter     = (await import('./routes/sync.js')).default;
+  sessionsRouter = (await import('./routes/sessions.js')).default;
+  speakersRouter = (await import('./routes/speakers.js')).default;
+} catch (err) {
+  console.error('[API] Failed to load core routes:', err.message);
+}
+
+try {
+  surveysRouter  = (await import('./routes/surveys.js')).default;
+  bookmarksRouter = (await import('./routes/bookmarks.js')).default;
+} catch (err) {
+  console.error('[API] Failed to load user routes:', err.message);
+}
+
+try {
+  pushRouter = (await import('./routes/push.js')).default;
+} catch (err) {
+  console.error('[API] Push routes disabled:', err.message);
+}
+
+try {
+  loginWithGoogle = (await import('./auth.js')).loginWithGoogle;
+} catch (err) {
+  console.error('[API] Auth disabled:', err.message);
+}
 
 const app = express();
 
@@ -32,14 +55,24 @@ app.use(express.json());
 app.get('/', (_req, res) => {
   res.json({
     service: 'Vacunar API',
-    version: '1.0.0',
+    version: '1.0.1',
     status: 'ok',
     timestamp: new Date().toISOString(),
+    routes: {
+      sync: !!syncRouter,
+      sessions: !!sessionsRouter,
+      speakers: !!speakersRouter,
+      surveys: !!surveysRouter,
+      bookmarks: !!bookmarksRouter,
+      push: !!pushRouter,
+      auth: !!loginWithGoogle,
+    }
   });
 });
 
 // ─── Auth ─────────────────────────────────────
 app.post('/api/auth/google', async (req, res) => {
+  if (!loginWithGoogle) return res.status(503).json({ error: 'Auth no configurado' });
   try {
     const { idToken } = req.body;
     if (!idToken) return res.status(400).json({ error: 'idToken requerido' });
@@ -52,12 +85,12 @@ app.post('/api/auth/google', async (req, res) => {
 });
 
 // ─── API Routes ───────────────────────────────
-app.use('/api/sync',      syncRouter);
-app.use('/api/sessions',  sessionsRouter);
-app.use('/api/speakers',  speakersRouter);
-app.use('/api/surveys',   surveysRouter);
-app.use('/api/me/bookmarks', bookmarksRouter);
-app.use('/api/push',      pushRouter);
+if (syncRouter)     app.use('/api/sync',      syncRouter);
+if (sessionsRouter) app.use('/api/sessions',  sessionsRouter);
+if (speakersRouter) app.use('/api/speakers',  speakersRouter);
+if (surveysRouter)  app.use('/api/surveys',   surveysRouter);
+if (bookmarksRouter) app.use('/api/me/bookmarks', bookmarksRouter);
+if (pushRouter)     app.use('/api/push',      pushRouter);
 
 // ─── Error handler ────────────────────────────
 app.use((err, _req, res, _next) => {
