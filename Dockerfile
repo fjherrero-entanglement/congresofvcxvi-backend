@@ -1,7 +1,7 @@
 FROM node:22-slim
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci --production
+RUN npm install --only=production
 COPY . .
 EXPOSE 8080
 CMD ["node", "src/index.js"]
